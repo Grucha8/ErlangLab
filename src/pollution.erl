@@ -76,7 +76,27 @@ dailyMean({{_,_,D,_}, Type}, V, {Acc, I, {Day, Type_}})
 dailyMean(_, V, {Acc, I, W}) when is_map(V) ->
   maps:fold(fun dailyMean/3, {Acc, I, W}, V);
 
-dailyMean(_, _, {Acc, I, W}) -> {Acc, I, W}.
+dailyMean(_, _, {Acc, I, W}) when I > 0 -> {Acc, I, W};
+
+dailyMean(_, _, {Acc, I, W}) -> error("There isnt ...").
+
+%% @doc no cos takiego #{hour => {sum, i}}
+getHourlyStationData(Id, Type, M) when is_list(Type) ->
+  FullId = retFullId(Id, M),
+  NewMap = getHourlyStationData(Type, maps:to_list(maps:get(FullId, M)), #{}),
+  maps:to_list(maps:map(fun(K, {Sum, I}) -> (Sum / I) end, NewMap));
+
+getHourlyStationData(_, [], M) -> M;
+
+getHourlyStationData(Type, [{{{_,_,_,H}, Type_}, Value} | T], M) when Type == Type_ ->
+  NewMap = maps:update_with(H,
+    fun({Sum, I}) -> {Sum + Value, I + 1} end,
+    {H, 1},
+    M),
+  getHourlyStationData(Type, T, NewMap);
+
+getHourlyStationData(Type, [_ | T], M) -> getHourlyStationData(Type, T, M).
+
 
 
 %% =================================================== %%
