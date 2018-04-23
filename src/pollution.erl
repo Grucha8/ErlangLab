@@ -13,7 +13,7 @@
 
 %% API
 -export([createMonitor/0, addStation/3, addValue/5, removeValue/4, getOneValue/4]).
--export([getStationMean/3, getDailyMean/3]).
+-export([getStationMean/3, getDailyMean/3, getHourlyStationData/3]).
 
 
 -define(DATE, {{Year, Month, Day}, {Hour, _, _}}).
@@ -23,15 +23,16 @@
 createMonitor() ->
   #{}.
 
-%% @doc Function to add new station.
-%% @param
+%% @doc Update monitor M with new station named StationName
+%% and with X and Y coords
 addStation(StationName, {X, Y}, M) ->
   case checkKey(maps:keys(M), StationName, {X, Y}) of
     true -> io:format("This station already exists!~n"), M;
     false -> M#{{StationName, {X,Y}} => #{}}
   end.
 
-%% @doc Function to add new reading to monitor
+%% @doc Updates value associated to Id in monitor M with
+%% a new reading with Date, Type and Value
 addValue(Id, ?DATE, Type, Value, M) ->
   FullId = retFullId(Id, M),
   Date = {Year, Month, Day, Hour},
@@ -41,19 +42,20 @@ addValue(Id, ?DATE, Type, Value, M) ->
     true  -> M#{ FullId => maps:put({Date, Type}, Value, maps:get(FullId, M)) }
   end.
 
-%% @doc Function to remove an existing reading from monitor.
+%% @doc Removes reading {Date, Type} from station Id from monitor M
 removeValue(Id, ?DATE, Type, M) ->
   Date = {Year, Month, Day, Hour},
   FullId = retFullId(Id, M),
   M#{ FullId => maps:remove({Date, Type}, maps:get(FullId, M)) }.
 
-%% @doc Function to get value of certain reading
+%% @doc Returns value associated with the station Id and the key {Date, Type}
+%% from M monitor
 getOneValue(Id, ?DATE, Type, M) ->
   Date = {Year, Month, Day, Hour},
   FullId = retFullId(Id, M),
   maps:get({Date, Type}, maps:get(FullId, M)).
 
-%% @doc Function to return the average value
+%% @doc Returns an average from station Id with the type Type
 getStationMean(Id, Type, M) ->
   FullId = retFullId(Id, M),
   {Sum, I, _} = maps:fold(fun valuesFun/3, {0, 0, Type}, maps:get(FullId, M)),
@@ -64,7 +66,8 @@ valuesFun({_, Type}, V, {Acc, I, PrimType}) when Type == PrimType ->
 
 valuesFun(_, _, {Acc, I, PrimType}) -> {Acc, I, PrimType}.
 
-%% @doc Function which returns the average
+%% @doc Returns an average from all stations with the
+%% same Type and Day
 getDailyMean(Type, Day, M) ->
   {Sum, I, _} = maps:fold(fun dailyMean/3, {0, 0, {Day, Type}}, M),
   Sum / I.
@@ -80,7 +83,7 @@ dailyMean(_, _, {Acc, I, W}) when I > 0 -> {Acc, I, W};
 
 dailyMean(_, _, {Acc, I, W}) -> error("There isnt ...").
 
-%% @doc no cos takiego #{hour => {sum, i}}
+%% @doc ?-?
 getHourlyStationData(Id, Type, M) when is_list(Type) ->
   FullId = retFullId(Id, M),
   NewMap = getHourlyStationData(Type, maps:to_list(maps:get(FullId, M)), #{}),
@@ -98,7 +101,8 @@ getHourlyStationData(Type, [{{{_,_,_,H}, Type_}, Value} | T], M) when Type == Ty
 getHourlyStationData(Type, [_ | T], M) -> getHourlyStationData(Type, T, M).
 
 
-
+%% =================================================== %%
+%%                   HELPING FUNCTIONS                 %%
 %% =================================================== %%
 retFullId(Name, M) when is_map(M) -> retFullId(Name, maps:keys(M));
 
@@ -110,14 +114,9 @@ retFullId(Name, [H | T]) -> retFullId(Name, T);
 
 retFullId(_, []) -> error("Not like this").
 
-
-%% @doc Helper function to find out if the Name and coords
-%% are already in our Monitor.
-%% Returns: true if is, false if isn't
 checkKey([], _, _) ->
   false;
 
-%% @todo change the names of params
 checkKey([{N, Coords} | T], SN, C) when (N == SN) or (Coords == C) ->
   true;
 
