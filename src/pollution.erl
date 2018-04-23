@@ -1,10 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author tkarkocha
 %%% @copyright (C) 2018, <COMPANY>
-%%% @doc Module to monitor the pollution of air. Struct to store date is:
-%%% #{ {StationName, {Xcord, Ycord}} => #{ {Date, Type} => Value } }
-%%% Date = {Y, M, D, H}
-%%%
+%%% @doc Module to monitor the pollution of air.
 %%% @end
 %%% Created : 22. kwi 2018 23:13
 %%%-------------------------------------------------------------------
@@ -14,7 +11,6 @@
 %% API
 -export([createMonitor/0, addStation/3, addValue/5, removeValue/4, getOneValue/4]).
 -export([getStationMean/3, getDailyMean/3, getHourlyStationData/3]).
-
 
 -define(DATE, {{Year, Month, Day}, {Hour, _, _}}).
 

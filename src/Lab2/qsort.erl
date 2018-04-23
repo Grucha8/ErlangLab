@@ -56,4 +56,3 @@ myFilter(Arg, {Lt, Gt, Pom} ) when Arg >= Pom ->
 myMap(Fun, List) ->
   [Fun(X) || X <- List].
 
-myFilter(Fun, List) ->
