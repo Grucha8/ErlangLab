@@ -14,10 +14,12 @@
 
 -define(DATE, {{Year, Month, Day}, {Hour, _, _}}).
 
+
 %% @doc Function to create a monitor which will
 %% monitor the pollution stations
 createMonitor() ->
   #{}.
+
 
 %% @doc Update monitor M with new station named StationName
 %% and with X and Y coords
@@ -26,6 +28,7 @@ addStation(StationName, {X, Y}, M) ->
     true -> io:format("This station already exists!~n"), M;
     false -> M#{{StationName, {X,Y}} => #{}}
   end.
+
 
 %% @doc Updates value associated to Id in monitor M with
 %% a new reading with Date, Type and Value
@@ -38,11 +41,13 @@ addValue(Id, ?DATE, Type, Value, M) ->
     true  -> M#{ FullId => maps:put({Date, Type}, Value, maps:get(FullId, M)) }
   end.
 
+
 %% @doc Removes reading {Date, Type} from station Id from monitor M
 removeValue(Id, ?DATE, Type, M) ->
   Date = {Year, Month, Day, Hour},
   FullId = retFullId(Id, M),
   M#{ FullId => maps:remove({Date, Type}, maps:get(FullId, M)) }.
+
 
 %% @doc Returns value associated with the station Id and the key {Date, Type}
 %% from M monitor
@@ -50,6 +55,7 @@ getOneValue(Id, ?DATE, Type, M) ->
   Date = {Year, Month, Day, Hour},
   FullId = retFullId(Id, M),
   maps:get({Date, Type}, maps:get(FullId, M)).
+
 
 %% @doc Returns an average from station Id with the type Type
 getStationMean(Id, Type, M) ->
@@ -62,14 +68,15 @@ valuesFun({_, Type}, V, {Acc, I, PrimType}) when Type == PrimType ->
 
 valuesFun(_, _, {Acc, I, PrimType}) -> {Acc, I, PrimType}.
 
+
 %% @doc Returns an average from all stations with the
-%% same Type and Day
+%% same Type and Day = {Y, M, D}
 getDailyMean(Type, Day, M) ->
   {Sum, I, _} = maps:fold(fun dailyMean/3, {0, 0, {Day, Type}}, M),
   Sum / I.
 
-dailyMean({{_,_,D,_}, Type}, V, {Acc, I, {Day, Type_}})
-  when (D == Day) and (Type == Type_) ->
+dailyMean({{Y,M,D,_}, Type}, V, {Acc, I, {Day, Type_}})
+  when ({Y, M, D} == Day) and (Type == Type_) ->
   {Acc + V, I + 1, {Day, Type_}};
 
 dailyMean(_, V, {Acc, I, W}) when is_map(V) ->
@@ -79,22 +86,23 @@ dailyMean(_, _, {Acc, I, W}) when I > 0 -> {Acc, I, W};
 
 dailyMean(_, _, {Acc, I, W}) -> error("There isnt ...").
 
+
 %% @doc ?-?
-getHourlyStationData(Id, Type, M) when is_list(Type) ->
+getHourlyStationData(Id, Type, M) ->
   FullId = retFullId(Id, M),
-  NewMap = getHourlyStationData(Type, maps:to_list(maps:get(FullId, M)), #{}),
-  maps:to_list(maps:map(fun(K, {Sum, I}) -> (Sum / I) end, NewMap));
+  NewMap = getHourlyStationDataPom(Type, maps:to_list(maps:get(FullId, M)), #{}),
+  maps:to_list(maps:map(fun(K, {Sum, I}) -> (Sum / I) end, NewMap)).
 
-getHourlyStationData(_, [], M) -> M;
+getHourlyStationDataPom(_, [], M) -> M;
 
-getHourlyStationData(Type, [{{{_,_,_,H}, Type_}, Value} | T], M) when Type == Type_ ->
+getHourlyStationDataPom(Type, [{{{_,_,_,H}, Type_}, Value} | T], M) when Type == Type_ ->
   NewMap = maps:update_with(H,
     fun({Sum, I}) -> {Sum + Value, I + 1} end,
-    {H, 1},
+    {Value, 1},
     M),
-  getHourlyStationData(Type, T, NewMap);
+  getHourlyStationDataPom(Type, T, NewMap);
 
-getHourlyStationData(Type, [_ | T], M) -> getHourlyStationData(Type, T, M).
+getHourlyStationDataPom(Type, [_ | T], M) -> getHourlyStationDataPom(Type, T, M).
 
 
 %% =================================================== %%
@@ -102,13 +110,15 @@ getHourlyStationData(Type, [_ | T], M) -> getHourlyStationData(Type, T, M).
 %% =================================================== %%
 retFullId(Name, M) when is_map(M) -> retFullId(Name, maps:keys(M));
 
-retFullId(Name, [{N, C} | T]) when Name == N -> {N, C};
+retFullId(_, []) -> error(noSuchId);
 
-retFullId(Coord, [{N, C} | T]) when Coord == C -> {N, C};
+retFullId(Name, [{N, C} | T]) when (Name == N) or (Name == C) -> {N, C};
 
-retFullId(Name, [H | T]) -> retFullId(Name, T);
+%retFullId(Coord, [{N, C} | T]) when Coord == C -> {N, C};
 
-retFullId(_, []) -> error("Not like this").
+retFullId(Name, [H | T]) -> retFullId(Name, T).
+
+
 
 checkKey([], _, _) ->
   false;
