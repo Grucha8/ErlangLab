@@ -61,7 +61,10 @@ getOneValue(Id, ?DATE, Type, M) ->
 getStationMean(Id, Type, M) ->
   FullId = retFullId(Id, M),
   {Sum, I, _} = maps:fold(fun valuesFun/3, {0, 0, Type}, maps:get(FullId, M)),
-  Sum / I.
+  case I of
+    0 -> 0;
+    _ -> Sum / I
+  end.
 
 valuesFun({_, Type}, V, {Acc, I, PrimType}) when Type == PrimType ->
   {Acc + V, I + 1, PrimType};
@@ -73,7 +76,10 @@ valuesFun(_, _, {Acc, I, PrimType}) -> {Acc, I, PrimType}.
 %% same Type and Day = {Y, M, D}
 getDailyMean(Type, Day, M) ->
   {Sum, I, _} = maps:fold(fun dailyMean/3, {0, 0, {Day, Type}}, M),
-  Sum / I.
+  case I of
+    0 -> 0;
+    _ -> Sum / I
+  end.
 
 dailyMean({{Y,M,D,_}, Type}, V, {Acc, I, {Day, Type_}})
   when ({Y, M, D} == Day) and (Type == Type_) ->
