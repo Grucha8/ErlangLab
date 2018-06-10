@@ -11,6 +11,7 @@
 
 %% API
 -export([start/0, stop/0, play/1]).
+-export([startA/0, stopA/0, playA/1]).
 
 start() ->
   register(ping, spawn(fun() -> initPing() end)),
@@ -35,10 +36,13 @@ ping_loop() ->
       ping_loop();
     stop ->
       terminate();
-    N ->
+    N when is_integer(N) ->
       io:format("ping ~w~n", [N]),
       timer:sleep(1500),
       pong ! (N-1),
+      ping_loop();
+    _ ->
+      io:format("Zly argument!~n"),
       ping_loop()
   after
    20000 ->
@@ -51,18 +55,21 @@ pong_loop() ->
       pong_loop();
     stop ->
       terminate();
-    N ->
+    N when is_integer(N) ->
       io:format("pong ~w~n", [N]),
       timer:sleep(1500),
       ping ! (N-1),
+      pong_loop();
+    _ ->
+      io:format("Zly argument!~n"),
       pong_loop()
-
   after
     20000 ->
       terminate()
   end.
 
-terminate() -> ok.
+terminate() ->
+  ok.
 
 
 %inna funkcja

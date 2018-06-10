@@ -11,12 +11,12 @@
 
 %% API
 -export([start/0, stop/0]).
--export([addStation/2, addValue/4, removeValue/4, getOneValue/3, getHourlyStationData/2]).
--export([getDailyMean/2, getStationMean/2, showMonitor/0]).
+-export([addStation/2, addValue/4, removeValue/3, getOneValue/3, getHourlyStationData/2]).
+-export([getDailyMean/2, getStationMean/2, showMonitor/0, crash/0]).
 
 
 start() ->
-  register(pollServer, spawn(fun() -> init() end)).
+  register(pollServer, spawn_link(fun() -> init() end)).
 
 
 init() ->
@@ -36,6 +36,7 @@ loop(State) ->
     {request, Pid, {addValue, {Id, Date, Type, Value}}} ->
       NewState = pollution:addValue(Id, Date, Type, Value, State),
       case NewState of
+        {error, _} -> Pid ! {reply, error}, loop(State);
         State -> Pid ! {reply, error};
           _   -> Pid ! {reply, ok}
       end,
@@ -60,11 +61,11 @@ loop(State) ->
       loop(State);
     {request, Pid, {getDailyMean, {Type, Day}}} ->
       Value = pollution:getDailyMean(Type, Day, State),
-      Pid ! Value,
+      Pid ! {reply, Value},
       loop(State);
     {request, Pid, {getHourlyStationData, {Id, Type}}} ->
       Value = pollution:getHourlyStationData(Id, Type, State),
-      Pid ! Value,
+      Pid ! {reply, Value},
       loop(State);
     {request, Pid, stop} ->
       io:format("Shutdown of pollution server~n"),
@@ -72,6 +73,8 @@ loop(State) ->
     {request, Pid, showMonitor} ->
       Pid ! {reply, State},
       loop(State);
+    {request, Pid, crash} ->
+      1 / 0;
     _ ->
       io:format("error~n"),
       loop(State)
@@ -82,17 +85,20 @@ loop(State) ->
 call(Message) ->
   pollServer ! {request, self(), Message},
   receive
-    {reply, error} -> io:format("error~n");
+    {reply, error} -> error;
     {reply, Reply} -> Reply
+  after
+    3000 -> error
   end.
 
 addStation(Name, Coords) -> call({addStation, {Name, Coords}}).
 addValue(Id, Date, Type, Value) -> call({addValue, {Id, Date, Type, Value}}).
-removeValue(Id, Date, Type, Value) -> call({removeValue, {Id, Date, Type, Value}}).
+removeValue(Id, Date, Type) -> call({removeValue, {Id, Date, Type}}).
 getOneValue(Id, Date, Type) -> call({getOneValue, {Id, Date, Type}}).
 getStationMean(Id, Type) -> call({getStationMean, {Id, Type}}).
 getDailyMean(Type, Day) -> call({getDailyMean, {Type, Day}}).
 getHourlyStationData(Id, Type) -> call({getHourlyStationData, {Id, Type}}).
 stop() -> call(stop).
+crash() -> call(crash).
 
 showMonitor() -> call(showMonitor).
