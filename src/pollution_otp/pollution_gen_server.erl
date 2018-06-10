@@ -18,14 +18,13 @@
 
 -define(SERVER, ?MODULE).
 
--record(jd, {name, myLovelyMap}).
-
 
 start(InitValue) ->
+  [{_, Monitor}] = ets:lookup(InitValue, monitor),
   gen_server:start_link(
     {local, ?SERVER},
     ?MODULE,
-    InitValue, []).
+    Monitor, []).
 
 init(State) ->
   {ok, State}.
@@ -50,12 +49,12 @@ handle_cast(crash, _From) -> 1/0;
 
 handle_cast({addS, Name, Coords}, State) ->
   NewState = pollution:addStation(Name, Coords, State),
-  ets:insert(globalTable, #jd{ name = one, myLovelyMap = NewState}),
+  ets:insert(table, {monitor, NewState}),
   {noreply, NewState};
 
 handle_cast({addV, Id, Date, Type, Value}, State) ->
   NewState = pollution:addValue(Id, Date, Type, Value, State),
-  ets:insert(globalTable, #jd{ name = one, myLovelyMap = NewState}),
+  ets:insert(table, {monitor, NewState}),
   {noreply, NewState}.
 
 

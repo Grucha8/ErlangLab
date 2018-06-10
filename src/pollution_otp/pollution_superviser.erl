@@ -12,13 +12,12 @@
 %% API
 -export([start_link/0, init/1]).
 
--record(jd, {name, myLovelyMap}).
 
 start_link() ->
-  Table = ets:new(globalTable, [public, named_table, {keypos, #jd.name}]),
-  ets:insert(globalTable, #jd{name=one, myLovelyMap=pollution:createMonitor()}),
+  ets:new(table, [set, named_table, public]),
+  ets:insert(table, {monitor, pollution:createMonitor()}),
   supervisor:start_link({local, pollutionSupervisor},
-    ?MODULE, ets:lookup(globalTable, one)#jd.myLovelyMap).
+    ?MODULE, table).
 
 init(InitValue) ->
   {ok, {
